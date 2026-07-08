@@ -1,21 +1,3 @@
-"""
-Task 3 - Deep-Dive Analysis & Interactive Dashboarding
-=======================================================
-Simple, step-by-step script — easy to read and understand.
-
-What this script does:
-  Step 1 → Calculate 5 core KPIs and save them
-  Step 2 → RFM Customer Segmentation (who are our best customers?)
-  Step 3 → Cohort Retention (do customers come back?)
-  Step 4 → Save 6 charts as PNG images
-
-Input  : ApexPlanet_DataAnalytics_Dataset.xlsx
-Outputs: kpi_definitions.csv, rfm_scores.csv, segment_summary.csv,
-         cohort_retention.csv, and 6 chart PNG files
-
-Run it : python task3_analysis.py
-"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
