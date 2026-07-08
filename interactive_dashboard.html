@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ApexPlanet — Sales KPI Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f6;color:#1B2A4A}
+  header{background:#1B2A4A;color:#fff;padding:18px 32px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:1.45rem;font-weight:700;letter-spacing:.5px}
+  header span{font-size:.85rem;color:#5FC9C8;font-weight:500}
+  .filters{background:#fff;padding:12px 32px;display:flex;gap:20px;align-items:center;border-bottom:1px solid #e3e6ec;flex-wrap:wrap}
+  .filters label{font-size:.82rem;font-weight:600;color:#6B7585;margin-right:4px}
+  .filters select{padding:5px 10px;border:1px solid #d0d5dd;border-radius:6px;font-size:.85rem;color:#1B2A4A;background:#f7f8fa;cursor:pointer}
+  .filters button{padding:6px 18px;background:#0E9594;color:#fff;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer}
+  .filters button:hover{background:#0a7a79}
+  .kpi-row{display:flex;gap:16px;padding:20px 32px 4px;flex-wrap:wrap}
+  .kpi-card{background:#fff;border-radius:10px;padding:18px 22px;flex:1;min-width:160px;
+    box-shadow:0 1px 4px rgba(27,42,74,.07);border-top:3px solid #0E9594}
+  .kpi-card .label{font-size:.75rem;color:#6B7585;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .kpi-card .value{font-size:1.55rem;font-weight:700;color:#1B2A4A;margin-top:4px}
+  .kpi-card .sub{font-size:.78rem;color:#9AA7C2;margin-top:2px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 32px 32px}
+  .card{background:#fff;border-radius:10px;padding:18px 20px;
+    box-shadow:0 1px 4px rgba(27,42,74,.07)}
+  .card h3{font-size:.9rem;font-weight:700;color:#1B2A4A;margin-bottom:12px}
+  .card.wide{grid-column:span 2}
+  canvas{max-height:260px}
+  .seg-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+  .seg-table th{background:#f0f2f6;color:#6B7585;font-weight:600;padding:7px 10px;text-align:left;border-bottom:2px solid #e3e6ec}
+  .seg-table td{padding:7px 10px;border-bottom:1px solid #f0f2f6}
+  .seg-table tr:hover td{background:#f7f8fa}
+  .badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:.75rem;font-weight:600}
+  .badge-champ{background:#0E959422;color:#0E9594}
+  .badge-loyal{background:#1B2A4A22;color:#1B2A4A}
+  .badge-pot{background:#5FC9C822;color:#0a7a79}
+  .badge-risk{background:#E0763D22;color:#E0763D}
+  .badge-lost{background:#E74C3C22;color:#E74C3C}
+  footer{text-align:center;padding:18px;font-size:.78rem;color:#9AA7C2}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}.card.wide{grid-column:span 1}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>&#9679; ApexPlanet — Sales Deep-Dive Dashboard</h1>
+    <div style="font-size:.8rem;color:#9AA7C2;margin-top:2px">Task 3 · Deep-Dive Analysis &amp; Interactive Dashboarding</div>
+  </div>
+  <span>Jan 2025 – Jan 2026 &nbsp;|&nbsp; 1,000 orders &nbsp;|&nbsp; 947 customers</span>
+</header>
+
+<div class="filters">
+  <div>
+    <label for="segFilter">Segment:</label>
+    <select id="segFilter">
+      <option value="All">All Segments</option>
+      <option>Champions</option>
+      <option>Loyal Customers</option>
+      <option>Potential Loyalists</option>
+      <option>At Risk</option>
+      <option>Lost</option>
+    </select>
+  </div>
+  <div>
+    <label for="catFilter">Category:</label>
+    <select id="catFilter">
+      <option value="All">All Categories</option>
+      <option>Electronics</option>
+      <option>Education</option>
+      <option>Furniture</option>
+      <option>Grocery</option>
+      <option>Fashion</option>
+    </select>
+  </div>
+  <button onclick="applyFilters()">Apply Filter</button>
+  <button onclick="resetFilters()" style="background:#6B7585">Reset</button>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-row" id="kpiRow"></div>
+
+<!-- Charts Grid -->
+<div class="grid">
+  <div class="card wide">
+    <h3>&#128200; Monthly Revenue Trend</h3>
+    <canvas id="monthlyChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#127775; RFM Customer Segments — Count</h3>
+    <canvas id="segCountChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#128181; Segment Revenue Share (%)</h3>
+    <canvas id="segRevChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#128188; Revenue by Category</h3>
+    <canvas id="catChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#127968; Revenue by City</h3>
+    <canvas id="cityChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#128202; Product Revenue Breakdown</h3>
+    <canvas id="productChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#128197; Revenue by Day of Week</h3>
+    <canvas id="weekdayChart"></canvas>
+  </div>
+  <div class="card">
+    <h3>&#127919; RFM Scatter — Frequency vs Monetary</h3>
+    <canvas id="rfmScatter"></canvas>
+  </div>
+  <div class="card wide">
+    <h3>&#128101; Customer Segment Summary Table</h3>
+    <table class="seg-table" id="segTable">
+      <thead><tr><th>Segment</th><th>Customers</th><th>Revenue Share</th><th>Recommendation</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>ApexPlanet Internship · Task 3: Deep-Dive Analysis &amp; Interactive Dashboarding · Data: Sales Dataset 2025-2026</footer>
+
+<script>
+const D = {"kpis": {"total_revenue": 139399439.65, "aov": 139399.44, "total_orders": 1000, "unique_customers": 947, "repeat_rate_pct": 5.5}, "monthly_revenue": {"labels": ["2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01"], "values": [10096190.73, 11511181.46, 13059899.94, 12222700.17, 10984689.25, 12912332.64, 11746226.8, 9448471.22, 9179896.29, 12500936.5, 12627620.22, 12299904.44, 809389.99]}, "category_revenue": {"labels": ["Education", "Electronics", "Fashion", "Furniture", "Grocery"], "values": [25031689.4, 50778581.7, 19835895.79, 21521561.48, 22231711.28]}, "city_revenue": {"labels": ["Patna", "Kolkata", "Bengaluru", "Mumbai", "Hyderabad", "Delhi", "Pune", "Gaya"], "values": [19285966.89, 18884349.57, 18773574.32, 18757050.17, 17166766.87, 16097079.0, 14513175.9, 14380859.39]}, "product_revenue": {"labels": ["Laptop", "Mobile", "Book", "Rice", "Chair", "Shoes"], "values": [25443008.51, 25335573.19, 25031689.4, 22231711.28, 21521561.48, 19835895.79]}, "segments": {"labels": ["Loyal Customers", "Champions", "Potential Loyalists", "At Risk", "Lost"], "customers": [291, 161, 333, 144, 18], "revenue_pct": [36.4, 31.3, 26.0, 6.0, 0.3]}, "weekday_revenue": {"labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "values": [19762540.77, 19104631.23, 21549419.11, 20512059.97, 20099668.17, 19161814.72, 19209305.68]}, "rfm_scatter": {"frequency": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1], "monetary": [9639.44, 21819.5, 87892.59, 85364.44, 35489.21, 252084.4, 122561.37, 113778.84, 324318.12, 98774.4, 107745.36, 210254.64, 242701.7, 610981.74, 129500.85, 297463.11, 86394.66, 34200.58, 144194.72, 110614.05, 104971.05, 40350.67, 128393.8, 184654.44, 47389.09, 167313.48, 36396.7, 425608.74, 482551.9, 196003.1, 34690.3, 219522.18, 156219.8, 217109.48, 70818.68, 102479.94, 150907.5, 46255.26, 203819.75, 69756.24, 64916.12, 162226.4, 1495.14, 64707.84, 135764.76, 334585.35, 134115.7, 28766.56, 35903.14, 30640.69, 90068.24, 163606.7, 95299.22, 126402.03, 419975.28, 245737.05, 13705.83, 195199.8, 15061.67, 325228.19, 25336.7, 14491.62, 284448.64, 4418.86, 11539.95, 74556.42, 12225.22, 296462.6, 51282.42, 363317.5, 267104.88, 106181.76, 5053.68, 132823.76, 147500.76, 170899.98, 161107.04, 42816.6, 350933.9, 42437.1, 125182.65, 1981.7, 64332.45, 138165.76, 3310.72, 116744.31, 33193.9, 215478.9, 19176.32, 70625.7, 75833.37, 23398.57, 241032.51, 167620.15, 234450.42, 394778.24, 338531.22, 378037.6, 100442.24, 159668.96, 299985.18, 180509.76, 128637.6, 107330.05, 62429.88, 429431.7, 198199.5, 191186.12, 277513.83, 102099.33, 14919.85, 256457.76, 331893.24, 34477.47, 138808.11, 286879.52, 360621.09, 78828.6, 196134.84, 46050.0, 97693.35, 163236.96, 25767.92, 8906.18, 8286.54, 105841.56, 14209.86, 76256.64, 75059.95, 3727.43, 173329.08, 43789.89, 223452.45, 209823.08, 318588.55, 166562.96, 299131.56, 248328.55, 105764.6, 315539.87, 215754.42, 154238.45, 29263.26, 259787.34, 67401.84, 97826.15, 274083.6, 439499.43, 16650.75, 37605.65, 70861.06, 64336.72, 93055.86, 150268.72, 200976.86, 130702.11, 14756.18, 359775.2, 121791.05, 84954.25, 88709.25, 3839.04, 216126.48, 66134.2, 119662.88, 175604.15, 140365.9, 243462.6, 18229.0, 143878.14, 313519.95, 18903.96, 103625.84, 181063.26, 407455.5, 411726.33, 96867.4, 374935.6, 85037.6, 106419.88, 53794.02, 145301.46, 399939.3, 112729.05, 207547.7, 67601.66, 203724.09, 146990.9, 68529.18, 10864.96, 294353.64, 548416.39, 284872.06, 118857.45, 109237.86, 10625.65, 122047.5, 261678.42, 242974.8, 27936.6], "segment": ["At Risk", "At Risk", "At Risk", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "At Risk", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "Champions", "Champions", "At Risk", "Champions", "Potential Loyalists", "Potential Loyalists", "Potential Loyalists", "Potential Loyalists", "At Risk", "At Risk", "Potential Loyalists", "Loyal Customers", "At Risk", "Champions", "At Risk", "Champions", "Loyal Customers", "Loyal Customers", "Loyal Customers", "Loyal Customers", "At Risk", "Champions", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "Loyal Customers", "Champions", "Potential Loyalists", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "At Risk", "Lost", "Loyal Customers", "At Risk", "Champions", "Potential Loyalists", "Potential Loyalists", "Potential Loyalists", "Champions", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "At Risk", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Lost", "Potential Loyalists", "Lost", "Loyal Customers", "Loyal Customers", "Champions", "Champions", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "At Risk", "Loyal Customers", "Potential Loyalists", "Champions", "Potential Loyalists", "At Risk", "Champions", "At Risk", "Champions", "Potential Loyalists", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "At Risk", "Lost", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Champions", "Loyal Customers", "Champions", "Loyal Customers", "Loyal Customers", "Loyal Customers", "Loyal Customers", "Champions", "At Risk", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "At Risk", "Loyal Customers", "Champions", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "At Risk", "Potential Loyalists", "At Risk", "At Risk", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "Champions", "At Risk", "Champions", "Champions", "Potential Loyalists", "Loyal Customers", "Champions", "Potential Loyalists", "Potential Loyalists", "Champions", "Loyal Customers", "Champions", "Loyal Customers", "Champions", "Potential Loyalists", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "At Risk", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "At Risk", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Potential Loyalists", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Champions", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Champions", "Loyal Customers", "Potential Loyalists", "Champions", "At Risk", "Potential Loyalists", "At Risk", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Champions", "Loyal Customers", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "Champions", "Loyal Customers", "Potential Loyalists", "At Risk", "Loyal Customers", "Potential Loyalists", "Loyal Customers", "At Risk", "Champions", "Champions", "Champions", "Champions", "At Risk", "At Risk", "Loyal Customers", "Loyal Customers", "Champions", "Potential Loyalists"], "recency": [303, 263, 216, 179, 68, 328, 353, 43, 289, 62, 52, 304, 44, 133, 283, 44, 182, 56, 261, 6, 194, 237, 341, 179, 229, 19, 175, 66, 195, 83, 17, 107, 285, 20, 223, 22, 250, 196, 128, 242, 54, 140, 85, 263, 358, 274, 312, 280, 12, 308, 77, 133, 122, 212, 8, 363, 137, 350, 251, 275, 26, 107, 84, 134, 336, 88, 277, 281, 40, 243, 129, 124, 138, 270, 106, 220, 116, 242, 261, 30, 170, 10, 209, 51, 261, 94, 203, 347, 74, 256, 327, 285, 269, 122, 281, 27, 183, 175, 10, 126, 80, 106, 69, 272, 241, 298, 238, 182, 91, 185, 352, 251, 165, 233, 13, 191, 329, 316, 356, 58, 74, 357, 240, 237, 129, 310, 86, 123, 111, 153, 82, 244, 70, 119, 296, 267, 47, 273, 95, 93, 176, 25, 180, 118, 212, 100, 203, 328, 192, 358, 189, 127, 76, 152, 332, 301, 43, 179, 248, 159, 98, 345, 252, 72, 257, 166, 43, 34, 14, 190, 135, 292, 194, 303, 345, 303, 111, 143, 201, 271, 231, 287, 57, 208, 281, 360, 213, 249, 57, 278, 231, 70, 15, 73, 327, 309, 95, 356, 192, 208]}};
+
+const PALETTE = {
+  "Champions":           "#0E9594",
+  "Loyal Customers":     "#1B2A4A",
+  "Potential Loyalists": "#5FC9C8",
+  "At Risk":             "#E0763D",
+  "Lost":                "#E74C3C",
+};
+const CAT_COLORS = ["#0E9594","#1B2A4A","#E0763D","#5FC9C8","#9B59B6"];
+const RECS = {
+  "Champions":           "Reward & upsell — these are your best customers.",
+  "Loyal Customers":     "Engage with loyalty program perks.",
+  "Potential Loyalists": "Nurture with targeted offers to convert.",
+  "At Risk":             "Win-back campaigns — act before they lapse.",
+  "Lost":                "Re-activation emails with strong discounts.",
+};
+const BADGE = {
+  "Champions":"badge-champ","Loyal Customers":"badge-loyal",
+  "Potential Loyalists":"badge-pot","At Risk":"badge-risk","Lost":"badge-lost"
+};
+
+// ── KPI Cards ───────────────────────────────────────────────────────
+function renderKPIs(d){
+  const kpis = [
+    {label:"Total Revenue",      value:"₹"+fmt(d.kpis.total_revenue),   sub:"across all orders"},
+    {label:"Avg Order Value",    value:"₹"+fmt(d.kpis.aov),             sub:"per transaction"},
+    {label:"Total Orders",       value:d.kpis.total_orders.toLocaleString(), sub:"in dataset"},
+    {label:"Unique Customers",   value:d.kpis.unique_customers.toLocaleString(), sub:"947 customers"},
+    {label:"Repeat Rate",        value:d.kpis.repeat_rate_pct+"%",      sub:"customers w/ >1 order"},
+  ];
+  document.getElementById("kpiRow").innerHTML = kpis.map(k=>
+    `<div class="kpi-card"><div class="label">${k.label}</div>
+     <div class="value">${k.value}</div>
+     <div class="sub">${k.sub}</div></div>`
+  ).join("");
+}
+function fmt(n){
+  if(n>=1e6) return "₹"+(n/1e6).toFixed(1)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(1)+"K";
+  return n.toFixed(0);
+}
+
+// ── Chart helpers ───────────────────────────────────────────────────
+const charts = {};
+function makeChart(id, config){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), config);
+}
+
+// ── Monthly revenue trend ───────────────────────────────────────────
+function renderMonthly(d){
+  makeChart("monthlyChart",{
+    type:"line",
+    data:{
+      labels: d.monthly_revenue.labels,
+      datasets:[{
+        label:"Revenue (₹)",
+        data: d.monthly_revenue.values,
+        borderColor:"#0E9594", backgroundColor:"rgba(14,149,148,.08)",
+        fill:true, tension:.35, pointRadius:4, pointBackgroundColor:"#0E9594"
+      }]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>"₹"+(v/1e6).toFixed(1)+"M"}}}}
+  });
+}
+
+// ── Segment donut — count ───────────────────────────────────────────
+function renderSegCount(d){
+  makeChart("segCountChart",{
+    type:"doughnut",
+    data:{
+      labels:d.segments.labels,
+      datasets:[{data:d.segments.customers,
+        backgroundColor:d.segments.labels.map(l=>PALETTE[l]),
+        hoverOffset:6}]
+    },
+    options:{responsive:true,plugins:{legend:{position:"right",labels:{font:{size:11}}}}}
+  });
+}
+
+// ── Segment donut — revenue ─────────────────────────────────────────
+function renderSegRev(d){
+  makeChart("segRevChart",{
+    type:"doughnut",
+    data:{
+      labels:d.segments.labels,
+      datasets:[{data:d.segments.revenue_pct,
+        backgroundColor:d.segments.labels.map(l=>PALETTE[l]),
+        hoverOffset:6}]
+    },
+    options:{responsive:true,plugins:{legend:{position:"right",labels:{font:{size:11}}},
+      tooltip:{callbacks:{label:ctx=>ctx.label+": "+ctx.parsed+"%"}}}}
+  });
+}
+
+// ── Category bar ────────────────────────────────────────────────────
+function renderCat(d){
+  makeChart("catChart",{
+    type:"bar",
+    data:{
+      labels:d.category_revenue.labels,
+      datasets:[{label:"Revenue",data:d.category_revenue.values,
+        backgroundColor:CAT_COLORS, borderRadius:5}]
+    },
+    options:{responsive:true,indexAxis:"y",plugins:{legend:{display:false}},
+      scales:{x:{ticks:{callback:v=>"₹"+(v/1e6).toFixed(0)+"M"}}}}
+  });
+}
+
+// ── City bar ────────────────────────────────────────────────────────
+function renderCity(d){
+  makeChart("cityChart",{
+    type:"bar",
+    data:{
+      labels:d.city_revenue.labels,
+      datasets:[{label:"Revenue",data:d.city_revenue.values,
+        backgroundColor:"#0E9594", borderRadius:5}]
+    },
+    options:{responsive:true,indexAxis:"y",plugins:{legend:{display:false}},
+      scales:{x:{ticks:{callback:v=>"₹"+(v/1e6).toFixed(0)+"M"}}}}
+  });
+}
+
+// ── Product bar ─────────────────────────────────────────────────────
+function renderProduct(d){
+  makeChart("productChart",{
+    type:"bar",
+    data:{
+      labels:d.product_revenue.labels,
+      datasets:[{label:"Revenue",data:d.product_revenue.values,
+        backgroundColor:["#0E9594","#1B2A4A","#5FC9C8","#E0763D","#9B59B6","#E74C3C"],
+        borderRadius:5}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>"₹"+(v/1e6).toFixed(0)+"M"}}}}
+  });
+}
+
+// ── Weekday bar ─────────────────────────────────────────────────────
+function renderWeekday(d){
+  makeChart("weekdayChart",{
+    type:"bar",
+    data:{
+      labels:d.weekday_revenue.labels,
+      datasets:[{label:"Revenue",data:d.weekday_revenue.values,
+        backgroundColor:"#1B2A4A", borderRadius:5}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>"₹"+(v/1e6).toFixed(0)+"M"}}}}
+  });
+}
+
+// ── RFM Scatter ─────────────────────────────────────────────────────
+function renderRFMScatter(d){
+  const segs = [...new Set(d.rfm_scatter.segment)];
+  const datasets = segs.map(s=>({
+    label:s,
+    data: d.rfm_scatter.segment.map((seg,i)=>seg===s?{x:d.rfm_scatter.frequency[i],y:d.rfm_scatter.monetary[i]/1000}:null).filter(Boolean),
+    backgroundColor: PALETTE[s]+"BB", pointRadius:5
+  }));
+  makeChart("rfmScatter",{
+    type:"scatter",
+    data:{datasets},
+    options:{responsive:true,plugins:{legend:{position:"right",labels:{font:{size:10}}}},
+      scales:{
+        x:{title:{display:true,text:"Frequency (orders)"}},
+        y:{title:{display:true,text:"Monetary (₹K)"}}
+      }}
+  });
+}
+
+// ── Segment table ───────────────────────────────────────────────────
+function renderSegTable(d){
+  const tbody = document.querySelector("#segTable tbody");
+  tbody.innerHTML = d.segments.labels.map((seg,i)=>
+    `<tr><td><span class="badge ${BADGE[seg]}">${seg}</span></td>
+     <td>${d.segments.customers[i]}</td>
+     <td>${d.segments.revenue_pct[i]}%</td>
+     <td style="color:#6B7585">${RECS[seg]}</td></tr>`
+  ).join("");
+}
+
+// ── Filters ─────────────────────────────────────────────────────────
+function applyFilters(){
+  const seg = document.getElementById("segFilter").value;
+  const cat = document.getElementById("catFilter").value;
+  // For segment filter: show filtered scatter; for cat: highlight cat bar
+  if(seg !== "All"){
+    // Filter RFM scatter to show only that segment
+    const f = {
+      frequency: [], monetary: [], segment: [], recency: []
+    };
+    D.rfm_scatter.segment.forEach((s,i)=>{
+      if(s===seg){
+        f.frequency.push(D.rfm_scatter.frequency[i]);
+        f.monetary.push(D.rfm_scatter.monetary[i]);
+        f.segment.push(D.rfm_scatter.segment[i]);
+        f.recency.push(D.rfm_scatter.recency[i]);
+      }
+    });
+    renderRFMScatter({rfm_scatter:f});
+  } else {
+    renderRFMScatter(D);
+  }
+  if(cat !== "All"){
+    const idx = D.category_revenue.labels.indexOf(cat);
+    const colors = D.category_revenue.labels.map((_,i)=> i===idx ? "#0E9594" : "#d0d5dd");
+    charts["catChart"].data.datasets[0].backgroundColor = colors;
+    charts["catChart"].update();
+  } else {
+    charts["catChart"].data.datasets[0].backgroundColor = CAT_COLORS;
+    charts["catChart"].update();
+  }
+}
+
+function resetFilters(){
+  document.getElementById("segFilter").value = "All";
+  document.getElementById("catFilter").value = "All";
+  renderRFMScatter(D);
+  charts["catChart"].data.datasets[0].backgroundColor = CAT_COLORS;
+  charts["catChart"].update();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+renderKPIs(D);
+renderMonthly(D);
+renderSegCount(D);
+renderSegRev(D);
+renderCat(D);
+renderCity(D);
+renderProduct(D);
+renderWeekday(D);
+renderRFMScatter(D);
+renderSegTable(D);
+</script>
+</body>
+</html>
